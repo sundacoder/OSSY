@@ -1,0 +1,5 @@
+{
+  "name": "OSSY Agent - DexScreener",
+  "description": "An agentic AI interface utilizing the OpenServ AI SDK pattern to analyze and filter crypto tokens via DexScreener based on Aggressive, Growth, or Inflation-Fighting strategies.",
+  "requestFramePermissions": []
+}
