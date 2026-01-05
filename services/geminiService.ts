@@ -51,7 +51,7 @@ export const runAgent = async (
   onLog("Initializing Agent...");
   
   try {
-    const modelId = "gemini-2.0-flash-exp"; 
+    const modelId = "gemini-3-flash-preview"; 
     
     onLog(`Reasoning with ${modelId}...`);
 
@@ -66,18 +66,14 @@ export const runAgent = async (
       }
     });
 
-    const candidates = result.candidates;
-    if (!candidates || candidates.length === 0) {
-      return { text: "No response from AI." };
-    }
-
-    const firstPart = candidates[0].content.parts[0];
-
-    // Check for Function Call
-    if (firstPart.functionCall) {
-      const fc = firstPart.functionCall;
+    // Check for Function Call using the helper property
+    const functionCalls = result.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+      const fc = functionCalls[0];
       const fnName = fc.name;
       const args = fc.args as unknown as FilterArgs;
+      // Capture the model's turn for history
+      const modelTurn = result.candidates?.[0]?.content;
 
       if (fnName === 'filterTokens') {
         onLog(`Agent invoking tool: filterTokens(${JSON.stringify(args)})`);
@@ -103,13 +99,14 @@ export const runAgent = async (
           model: modelId,
           contents: [
             { role: "user", parts: [{ text: prompt }] },
-            { role: "model", parts: [firstPart] }, // The function call
+            modelTurn!, // The function call
             { 
               role: "user", 
               parts: [{ 
                 functionResponse: {
                   name: fnName,
-                  response: { result: toolResultJson }
+                  response: { result: toolResultJson },
+                  id: fc.id
                 } 
               }] 
             }
@@ -124,8 +121,9 @@ export const runAgent = async (
       }
     }
 
-    // Fallback if no tool called
-    return { text: result.text || "I couldn't process that request." };
+    // Fallback if no tool called (use text getter)
+    const text = result.text;
+    return { text: text || "I couldn't process that request." };
 
   } catch (error: any) {
     console.error("Agent Error:", error);
